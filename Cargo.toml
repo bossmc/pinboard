@@ -1,0 +1,12 @@
+[package]
+authors = ["Andy Caldwell <andrew.caldwell@metaswitch.com>"]
+name = "shelf"
+description = "A lock-free, threadsafe way to publish data, just stick it on the shelf"
+license = "MIT"
+repository = "https://github.com/bossmc/shelf"
+version = "0.9.0"
+keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
+categories = ["concurrency"]
+
+[dependencies]
+crossbeam = "0.2.10"
