@@ -1,15 +1,15 @@
 [package]
 authors = ["Andy Caldwell <andrew.caldwell@metaswitch.com>"]
-name = "shelf"
-description = "A lock-free, threadsafe way to publish data, just stick it on the shelf"
+name = "pinboard"
+description = "A lock-free, threadsafe way to publish data, just stick it on the pinboard"
 license = "MIT"
-repository = "https://github.com/bossmc/shelf"
+repository = "https://github.com/bossmc/pinboard"
 version = "0.9.0"
 keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
 categories = ["concurrency"]
 
 [badges]
-travis-ci = { repository = "https://github.com/bossmc/shelf" }
+travis-ci = { repository = "https://github.com/bossmc/pinboard" }
 
 [dependencies]
 crossbeam = "0.2.10"

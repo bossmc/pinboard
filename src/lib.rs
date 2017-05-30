@@ -5,11 +5,11 @@ use std::sync::atomic::Ordering::*;
 
 use std::ops::Deref;
 
-pub struct Shelf<T: Clone>(Atomic<T>);
+pub struct Pinboard<T: Clone>(Atomic<T>);
 
-impl<T: Clone> Shelf<T> {
-    pub fn new() -> Shelf<T> {
-        Shelf(Atomic::null())
+impl<T: Clone> Pinboard<T> {
+    pub fn new() -> Pinboard<T> {
+        Pinboard(Atomic::null())
     }
 
     pub fn set(&self, t: T) {
@@ -33,7 +33,7 @@ mod tests {
     use super::*;
     use std::fmt::Display;
 
-    fn consume<T: Clone + Display>(t: &Shelf<T>) {
+    fn consume<T: Clone + Display>(t: &Pinboard<T>) {
         loop {
             match t.read() {
                 Some(_) => {},
@@ -43,7 +43,7 @@ mod tests {
         }
     }
 
-    fn produce(t: &Shelf<u32>) {
+    fn produce(t: &Pinboard<u32>) {
         for i in 1..100 {
             t.set(i);
             std::thread::sleep(std::time::Duration::from_millis(2));
@@ -53,7 +53,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let t = Shelf::<u32>::new();
+        let t = Pinboard::<u32>::new();
         assert_eq!(None, t.read());
         t.set(3);
         assert_eq!(Some(3), t.read());
@@ -63,7 +63,7 @@ mod tests {
 
     #[test]
     fn single_producer_single_consumer() {
-        let t = Shelf::<u32>::new();
+        let t = Pinboard::<u32>::new();
         t.set(0);
 
         crossbeam::scope(|scope| {
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn multi_producer_single_consumer() {
-        let t = Shelf::<u32>::new();
+        let t = Pinboard::<u32>::new();
         t.set(0);
 
         crossbeam::scope(|scope| {
@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn single_producer_multi_consumer() {
-        let t = Shelf::<u32>::new();
+        let t = Pinboard::<u32>::new();
         t.set(0);
 
         crossbeam::scope(|scope| {
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn multi_producer_multi_consumer() {
-        let t = Shelf::<u32>::new();
+        let t = Pinboard::<u32>::new();
         t.set(0);
 
         crossbeam::scope(|scope| {
