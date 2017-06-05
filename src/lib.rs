@@ -8,8 +8,11 @@ use std::ops::Deref;
 pub struct Pinboard<T: Clone>(Atomic<T>);
 
 impl<T: Clone> Pinboard<T> {
-    pub fn new() -> Pinboard<T> {
-        Pinboard(Atomic::null())
+    pub fn new(t: T) -> Pinboard<T> {
+        let t = Owned::new(t);
+        let p = Pinboard::default();
+        p.0.store(Some(t), Release);
+        p
     }
 
     pub fn set(&self, t: T) {
@@ -31,6 +34,12 @@ impl<T: Clone> Pinboard<T> {
         let guard = pin();
         let t = self.0.load(Acquire, &guard);
         t.map(|t| -> &T { t.deref() }).cloned()
+    }
+}
+
+impl<T: Clone> Default for Pinboard<T> {
+    fn default() -> Pinboard<T> {
+        Pinboard(Atomic::null())
     }
 }
 
@@ -66,7 +75,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let t = Pinboard::<u32>::new();
+        let t = Pinboard::<u32>::default();
         assert_eq!(None, t.read());
         t.set(3);
         assert_eq!(Some(3), t.read());
@@ -76,8 +85,7 @@ mod tests {
 
     #[test]
     fn single_producer_single_consumer() {
-        let t = Pinboard::<u32>::new();
-        t.set(0);
+        let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
             scope.spawn(|| produce(&t));
@@ -87,8 +95,7 @@ mod tests {
 
     #[test]
     fn multi_producer_single_consumer() {
-        let t = Pinboard::<u32>::new();
-        t.set(0);
+        let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
             scope.spawn(|| produce(&t));
@@ -100,8 +107,7 @@ mod tests {
 
     #[test]
     fn single_producer_multi_consumer() {
-        let t = Pinboard::<u32>::new();
-        t.set(0);
+        let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
             scope.spawn(|| produce(&t));
@@ -113,8 +119,7 @@ mod tests {
 
     #[test]
     fn multi_producer_multi_consumer() {
-        let t = Pinboard::<u32>::new();
-        t.set(0);
+        let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
             scope.spawn(|| produce(&t));
