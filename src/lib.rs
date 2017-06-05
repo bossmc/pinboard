@@ -13,18 +13,31 @@ impl<T: Clone> Pinboard<T> {
     }
 
     pub fn set(&self, t: T) {
+        let guard = pin();
         let t = Owned::new(t);
-        self.0.store(Some(t), Release);
+        if let Some(t) = self.0.swap(Some(t), Release, &guard) {
+            unsafe { guard.unlinked(t); }
+        }
     }
 
     pub fn clear(&self) {
-        self.0.store(None, Release);
+        let guard = pin();
+        if let Some(t) = self.0.swap(None, Release, &guard) {
+            unsafe { guard.unlinked(t); }
+        }
     }
 
     pub fn read(&self) -> Option<T> {
         let guard = pin();
         let t = self.0.load(Acquire, &guard);
         t.map(|t| -> &T { t.deref() }).cloned()
+    }
+}
+
+impl<T: Clone> Drop for Pinboard<T> {
+    fn drop(&mut self) {
+        // Make sure any stored data is marked for deletion
+        self.clear();
     }
 }
 
