@@ -1,3 +1,21 @@
+#![warn(missing_docs)]
+
+//! A `Pinboard` is a shared, mutable, eventually consistent, lock-free data-structure.  This
+//! allows multiple threads to communicate in a decoupled way by publishing data to the pinboard
+//! which other threads can then read in an eventually consistent way.
+//!
+//! This is not a silver bullet though, there are various limitations of `Pinboard` that trade off
+//! the nice behaviour described above.
+//!
+//! * Eventual consistency:
+//!     * Writes from one thread are not guaranteed to be seen by reads from another thread
+//!     * Writes from one thread can overwrite writes from another thread
+//! * No in-place mutation:
+//!     * The only write primitive completely overwrites the data on the `Pinboard`
+//! * Requires `Clone`:
+//!     * All reads return a clone of the data, decoupling the lifetime of the read value from the
+//!     data stored in the global reference.
+
 extern crate crossbeam;
 
 use crossbeam::mem::epoch::{Atomic, Owned, pin};
@@ -5,9 +23,11 @@ use std::sync::atomic::Ordering::*;
 
 use std::ops::Deref;
 
+/// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
 pub struct Pinboard<T: Clone>(Atomic<T>);
 
 impl<T: Clone> Pinboard<T> {
+    /// Create a new `Pinboard` instance holding the given value.
     pub fn new(t: T) -> Pinboard<T> {
         let t = Owned::new(t);
         let p = Pinboard::default();
@@ -15,6 +35,7 @@ impl<T: Clone> Pinboard<T> {
         p
     }
 
+    /// Update the value stored in the `Pinboard`.
     pub fn set(&self, t: T) {
         let guard = pin();
         let t = Owned::new(t);
@@ -23,6 +44,7 @@ impl<T: Clone> Pinboard<T> {
         }
     }
 
+    /// Clear out the `Pinboard` so its no longer holding any data.
     pub fn clear(&self) {
         let guard = pin();
         if let Some(t) = self.0.swap(None, Release, &guard) {
@@ -30,6 +52,7 @@ impl<T: Clone> Pinboard<T> {
         }
     }
 
+    /// Get a copy of the latest (well, recent) version of the posted data.
     pub fn read(&self) -> Option<T> {
         let guard = pin();
         let t = self.0.load(Acquire, &guard);
