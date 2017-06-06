@@ -4,7 +4,7 @@ name = "pinboard"
 description = "A lock-free, threadsafe way to publish data, just stick it on the pinboard"
 license = "MIT"
 repository = "https://github.com/bossmc/pinboard"
-version = "0.10.0"
+version = "1.0.0"
 keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
 categories = ["concurrency"]
 
