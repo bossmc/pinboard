@@ -73,6 +73,34 @@ impl<T: Clone> Drop for Pinboard<T> {
     }
 }
 
+/// An wrapper around a `Pinboard` which provides the guarantee it is never empty.
+pub struct NonEmptyPinboard<T: Clone>(Pinboard<T>);
+
+impl<T: Clone> NonEmptyPinboard<T> {
+    /// Create a new `NonEmptyPinboard` instance holding the given value.
+    pub fn new(t: T) -> NonEmptyPinboard<T> {
+        NonEmptyPinboard(Pinboard::new(t))
+    }
+
+    /// Update the value stored in the `NonEmptyPinboard`.
+    #[inline]
+    pub fn set(&self, t: T) {
+        self.0.set(t)
+    }
+
+    /// Get a copy of the latest (well, recent) version of the posted data.
+    #[inline]
+    pub fn read(&self) -> T {
+        // Unwrap the option returned by the inner `Pinboard`. This will never panic, because it's
+        // impossible for this `Pinboard` to be empty (though it's not possible to prove this to the
+        // compiler).
+        match self.0.read() {
+            Some(t) => t,
+            None => unreachable!("Inner pointer was unexpectedly null"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,5 +180,13 @@ mod tests {
             scope.spawn(|| consume(&t));
             scope.spawn(|| consume(&t));
         })
+    }
+
+    #[test]
+    fn non_empty_pinboard() {
+        let t = NonEmptyPinboard::<u32>::new(3);
+        assert_eq!(3, t.read());
+        t.set(4);
+        assert_eq!(4, t.read());
     }
 }
