@@ -40,7 +40,9 @@ impl<T: Clone> Pinboard<T> {
         let guard = pin();
         let t = Owned::new(t);
         if let Some(t) = self.0.swap(Some(t), Release, &guard) {
-            unsafe { guard.unlinked(t); }
+            unsafe {
+                guard.unlinked(t);
+            }
         }
     }
 
@@ -48,7 +50,9 @@ impl<T: Clone> Pinboard<T> {
     pub fn clear(&self) {
         let guard = pin();
         if let Some(t) = self.0.swap(None, Release, &guard) {
-            unsafe { guard.unlinked(t); }
+            unsafe {
+                guard.unlinked(t);
+            }
         }
     }
 
@@ -109,7 +113,7 @@ mod tests {
     fn consume<T: Clone + Display>(t: &Pinboard<T>) {
         loop {
             match t.read() {
-                Some(_) => {},
+                Some(_) => {}
                 None => break,
             }
             std::thread::sleep(std::time::Duration::from_millis(1));
@@ -139,9 +143,9 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-        })
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| consume(&t));
+                         })
     }
 
     #[test]
@@ -149,11 +153,11 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-        })
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| consume(&t));
+                         })
     }
 
     #[test]
@@ -161,11 +165,11 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-        })
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| consume(&t));
+                             scope.spawn(|| consume(&t));
+                             scope.spawn(|| consume(&t));
+                         })
     }
 
     #[test]
@@ -173,13 +177,13 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-        })
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| produce(&t));
+                             scope.spawn(|| consume(&t));
+                             scope.spawn(|| consume(&t));
+                             scope.spawn(|| consume(&t));
+                         })
     }
 
     #[test]
