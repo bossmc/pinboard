@@ -96,7 +96,7 @@ impl<T: Clone> NonEmptyPinboard<T> {
         // compiler).
         match self.0.read() {
             Some(t) => t,
-            None => unreachable!(),
+            None => unreachable!("Inner pointer was unexpectedly null"),
         }
     }
 }
