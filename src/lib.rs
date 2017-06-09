@@ -83,18 +83,21 @@ impl<T: Clone> NonEmptyPinboard<T> {
     }
 
     /// Update the value stored in the `NonEmptyPinboard`.
+    #[inline]
     pub fn set(&self, t: T) {
         self.0.set(t)
     }
 
     /// Get a copy of the latest (well, recent) version of the posted data.
+    #[inline]
     pub fn read(&self) -> T {
         // Unwrap the option returned by the inner `Pinboard`. This will never panic, because it's
         // impossible for this `Pinboard` to be empty (though it's not possible to prove this to the
         // compiler).
-        self.0.read().expect("Inner pointer was unexpectedly null. This should be impossible. \
-                              Consider raising an issue at \
-                              https://github.com/bossmc/pinboard/issues.")
+        match self.0.read() {
+            Some(t) => t,
+            None => unreachable!(),
+        }
     }
 }
 
