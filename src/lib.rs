@@ -92,7 +92,9 @@ impl<T: Clone> NonEmptyPinboard<T> {
         // Unwrap the option returned by the inner `Pinboard`. This will never panic, because it's
         // impossible for this `Pinboard` to be empty (though it's not possible to prove this to the
         // compiler).
-        self.0.read().unwrap()
+        self.0.read().expect("Inner pointer was unexpectedly null. This should be impossible. \
+                              Consider raising an issue at \
+                              https://github.com/bossmc/pinboard/issues.")
     }
 }
 
