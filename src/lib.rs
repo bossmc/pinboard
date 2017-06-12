@@ -105,6 +105,29 @@ impl<T: Clone> NonEmptyPinboard<T> {
     }
 }
 
+macro_rules! debuggable {
+    ($struct:ident, $trait:ident) => {
+        impl<T: Clone> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+                write!(f, "{}(", stringify!($struct))?;
+                ::std::fmt::$trait::fmt(&self.read(), f)?;
+                write!(f, ")")
+            }
+        }
+    }
+}
+
+debuggable!(Pinboard, Debug);
+debuggable!(NonEmptyPinboard, Debug);
+debuggable!(NonEmptyPinboard, Binary);
+debuggable!(NonEmptyPinboard, Display);
+debuggable!(NonEmptyPinboard, LowerExp);
+debuggable!(NonEmptyPinboard, LowerHex);
+debuggable!(NonEmptyPinboard, Octal);
+debuggable!(NonEmptyPinboard, Pointer);
+debuggable!(NonEmptyPinboard, UpperExp);
+debuggable!(NonEmptyPinboard, UpperHex);
+
 #[cfg(test)]
 mod tests {
     use super::*;
