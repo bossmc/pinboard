@@ -1,15 +1,17 @@
 [package]
 authors = ["Andy Caldwell <andrew.caldwell@metaswitch.com>"]
-name = "pinboard"
-description = "A lock-free, threadsafe way to publish data, just stick it on the pinboard"
-license = "MIT"
-repository = "https://github.com/bossmc/pinboard"
-version = "1.1.0"
-keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
 categories = ["concurrency"]
+description = "A lock-free, threadsafe way to publish data, just stick it on the pinboard"
+keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
+license = "MIT"
+name = "pinboard"
+repository = "https://github.com/bossmc/pinboard"
+version = "1.2.0"
 
 [badges]
-travis-ci = { repository = "bossmc/pinboard" }
+
+[badges.travis-ci]
+repository = "bossmc/pinboard"
 
 [dependencies]
 crossbeam = "0.2.10"
