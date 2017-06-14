@@ -151,6 +151,8 @@ mod tests {
         t.clear();
     }
 
+    fn check_debug<T: ::std::fmt::Debug>(_: T) {}
+
     #[test]
     fn it_works() {
         let t = Pinboard::<u32>::default();
@@ -215,5 +217,13 @@ mod tests {
         assert_eq!(3, t.read());
         t.set(4);
         assert_eq!(4, t.read());
+    }
+
+    #[test]
+    fn debuggable() {
+        let t = Pinboard::<i32>::new(3);
+        check_debug(t);
+        let t = NonEmptyPinboard::<i32>::new(2);
+        check_debug(t);
     }
 }
