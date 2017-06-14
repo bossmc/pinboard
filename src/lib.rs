@@ -105,6 +105,29 @@ impl<T: Clone> NonEmptyPinboard<T> {
     }
 }
 
+macro_rules! debuggable {
+    ($struct:ident, $trait:ident) => {
+        impl<T: Clone> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+                write!(f, "{}(", stringify!($struct))?;
+                ::std::fmt::$trait::fmt(&self.read(), f)?;
+                write!(f, ")")
+            }
+        }
+    }
+}
+
+debuggable!(Pinboard, Debug);
+debuggable!(NonEmptyPinboard, Debug);
+debuggable!(NonEmptyPinboard, Binary);
+debuggable!(NonEmptyPinboard, Display);
+debuggable!(NonEmptyPinboard, LowerExp);
+debuggable!(NonEmptyPinboard, LowerHex);
+debuggable!(NonEmptyPinboard, Octal);
+debuggable!(NonEmptyPinboard, Pointer);
+debuggable!(NonEmptyPinboard, UpperExp);
+debuggable!(NonEmptyPinboard, UpperHex);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,6 +150,8 @@ mod tests {
         }
         t.clear();
     }
+
+    fn check_debug<T: ::std::fmt::Debug>(_: T) {}
 
     #[test]
     fn it_works() {
@@ -192,5 +217,13 @@ mod tests {
         assert_eq!(3, t.read());
         t.set(4);
         assert_eq!(4, t.read());
+    }
+
+    #[test]
+    fn debuggable() {
+        let t = Pinboard::<i32>::new(3);
+        check_debug(t);
+        let t = NonEmptyPinboard::<i32>::new(2);
+        check_debug(t);
     }
 }
