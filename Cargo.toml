@@ -6,7 +6,7 @@ keywords = ["concurrency", "lock-free", "threading", "thread-safety"]
 license = "MIT"
 name = "pinboard"
 repository = "https://github.com/bossmc/pinboard"
-version = "1.2.0"
+version = "1.3.0"
 
 [badges]
 
