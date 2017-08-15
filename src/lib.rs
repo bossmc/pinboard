@@ -77,6 +77,12 @@ impl<T: Clone> Drop for Pinboard<T> {
     }
 }
 
+impl<T: Clone> From<Option<T>> for Pinboard<T> {
+    fn from(src: Option<T>) -> Pinboard<T> {
+        src.map(Pinboard::new).unwrap_or_default()
+    }
+}
+
 /// An wrapper around a `Pinboard` which provides the guarantee it is never empty.
 pub struct NonEmptyPinboard<T: Clone>(Pinboard<T>);
 
