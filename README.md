@@ -16,7 +16,7 @@ Install from crates.io by adding `pinboard` to your `Cargo.toml`:
 
 ```
 [dependencies]
-pinboard = "1.2.0"
+pinboard = "1.4.0"
 ```
 
 Now you can create a Pinboard, share it between your users (be they `Futures`, threads or really anything else) and start sharing data!

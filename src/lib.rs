@@ -18,7 +18,7 @@
 
 extern crate crossbeam;
 
-use crossbeam::mem::epoch::{Atomic, Owned, pin};
+use crossbeam::epoch::{Atomic, Owned, pin};
 use std::sync::atomic::Ordering::*;
 
 use std::ops::Deref;
