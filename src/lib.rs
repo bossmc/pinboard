@@ -39,7 +39,7 @@ impl<T: Clone> Pinboard<T> {
     pub fn set(&self, t: T) {
         let guard = pin();
         let t = Owned::new(t);
-        if let Some(t) = self.0.swap(Some(t), Release, &guard) {
+        if let Some(t) = self.0.swap(Some(t), AcqRel, &guard) {
             unsafe {
                 guard.unlinked(t);
             }
@@ -49,7 +49,7 @@ impl<T: Clone> Pinboard<T> {
     /// Clear out the `Pinboard` so its no longer holding any data.
     pub fn clear(&self) {
         let guard = pin();
-        if let Some(t) = self.0.swap(None, Release, &guard) {
+        if let Some(t) = self.0.swap(None, AcqRel, &guard) {
             unsafe {
                 guard.unlinked(t);
             }
