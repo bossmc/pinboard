@@ -16,22 +16,20 @@
 //!     * All reads return a clone of the data, decoupling the lifetime of the read value from the
 //!     data stored in the global reference.
 
-extern crate crossbeam;
+extern crate crossbeam_epoch as epoch;
 
-use crossbeam::epoch::{Atomic, Owned, pin};
+use epoch::{Atomic, Owned, Shared, pin};
 use std::sync::atomic::Ordering::*;
 
-use std::ops::Deref;
-
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
-pub struct Pinboard<T: Clone>(Atomic<T>);
+pub struct Pinboard<T: Clone + 'static>(Atomic<T>);
 
-impl<T: Clone> Pinboard<T> {
+impl<T: Clone + 'static> Pinboard<T> {
     /// Create a new `Pinboard` instance holding the given value.
     pub fn new(t: T) -> Pinboard<T> {
         let t = Owned::new(t);
         let p = Pinboard::default();
-        p.0.store(Some(t), Release);
+        p.0.store(t, Release);
         p
     }
 
@@ -39,9 +37,10 @@ impl<T: Clone> Pinboard<T> {
     pub fn set(&self, t: T) {
         let guard = pin();
         let t = Owned::new(t);
-        if let Some(t) = self.0.swap(Some(t), AcqRel, &guard) {
-            unsafe {
-                guard.unlinked(t);
+        let t = self.0.swap(t, AcqRel, &guard);
+        unsafe {
+            if !t.is_null() {
+                guard.defer(move || drop(t.into_owned()));
             }
         }
     }
@@ -49,9 +48,10 @@ impl<T: Clone> Pinboard<T> {
     /// Clear out the `Pinboard` so its no longer holding any data.
     pub fn clear(&self) {
         let guard = pin();
-        if let Some(t) = self.0.swap(None, AcqRel, &guard) {
-            unsafe {
-                guard.unlinked(t);
+        let t = self.0.swap(Shared::null(), AcqRel, &guard);
+        unsafe {
+            if !t.is_null() {
+                guard.defer(move || drop(t.into_owned()));
             }
         }
     }
@@ -59,34 +59,40 @@ impl<T: Clone> Pinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
     pub fn read(&self) -> Option<T> {
         let guard = pin();
-        let t = self.0.load(Acquire, &guard);
-        t.map(|t| -> &T { t.deref() }).cloned()
+        unsafe {
+            let t = self.0.load(Acquire, &guard);
+            if t.is_null() {
+                None
+            } else {
+                Some(t.deref().clone())
+            }
+        }
     }
 }
 
-impl<T: Clone> Default for Pinboard<T> {
+impl<T: Clone + 'static> Default for Pinboard<T> {
     fn default() -> Pinboard<T> {
         Pinboard(Atomic::null())
     }
 }
 
-impl<T: Clone> Drop for Pinboard<T> {
+impl<T: Clone + 'static> Drop for Pinboard<T> {
     fn drop(&mut self) {
         // Make sure any stored data is marked for deletion
         self.clear();
     }
 }
 
-impl<T: Clone> From<Option<T>> for Pinboard<T> {
+impl<T: Clone + 'static> From<Option<T>> for Pinboard<T> {
     fn from(src: Option<T>) -> Pinboard<T> {
         src.map(Pinboard::new).unwrap_or_default()
     }
 }
 
 /// An wrapper around a `Pinboard` which provides the guarantee it is never empty.
-pub struct NonEmptyPinboard<T: Clone>(Pinboard<T>);
+pub struct NonEmptyPinboard<T: Clone + 'static>(Pinboard<T>);
 
-impl<T: Clone> NonEmptyPinboard<T> {
+impl<T: Clone + 'static> NonEmptyPinboard<T> {
     /// Create a new `NonEmptyPinboard` instance holding the given value.
     pub fn new(t: T) -> NonEmptyPinboard<T> {
         NonEmptyPinboard(Pinboard::new(t))
@@ -113,7 +119,7 @@ impl<T: Clone> NonEmptyPinboard<T> {
 
 macro_rules! debuggable {
     ($struct:ident, $trait:ident) => {
-        impl<T: Clone> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
+        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(&self.read(), f)?;
@@ -136,6 +142,7 @@ debuggable!(NonEmptyPinboard, UpperHex);
 
 #[cfg(test)]
 mod tests {
+    extern crate crossbeam;
     use super::*;
     use std::fmt::Display;
 
