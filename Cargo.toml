@@ -11,7 +11,7 @@ keywords = [
 license = "MIT"
 name = "pinboard"
 repository = "https://github.com/bossmc/pinboard"
-version = "1.4.1"
+version = "2.0.0"
 
 [badges.travis-ci]
 repository = "bossmc/pinboard"

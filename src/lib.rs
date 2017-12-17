@@ -22,9 +22,9 @@ use epoch::{Atomic, Owned, Shared, pin};
 use std::sync::atomic::Ordering::*;
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
-pub struct Pinboard<T: Clone>(Atomic<T>);
+pub struct Pinboard<T: Clone + 'static>(Atomic<T>);
 
-impl<T: Clone> Pinboard<T> {
+impl<T: Clone + 'static> Pinboard<T> {
     /// Create a new `Pinboard` instance holding the given value.
     pub fn new(t: T) -> Pinboard<T> {
         let t = Owned::new(t);
@@ -70,29 +70,29 @@ impl<T: Clone> Pinboard<T> {
     }
 }
 
-impl<T: Clone> Default for Pinboard<T> {
+impl<T: Clone + 'static> Default for Pinboard<T> {
     fn default() -> Pinboard<T> {
         Pinboard(Atomic::null())
     }
 }
 
-impl<T: Clone> Drop for Pinboard<T> {
+impl<T: Clone + 'static> Drop for Pinboard<T> {
     fn drop(&mut self) {
         // Make sure any stored data is marked for deletion
         self.clear();
     }
 }
 
-impl<T: Clone> From<Option<T>> for Pinboard<T> {
+impl<T: Clone + 'static> From<Option<T>> for Pinboard<T> {
     fn from(src: Option<T>) -> Pinboard<T> {
         src.map(Pinboard::new).unwrap_or_default()
     }
 }
 
 /// An wrapper around a `Pinboard` which provides the guarantee it is never empty.
-pub struct NonEmptyPinboard<T: Clone>(Pinboard<T>);
+pub struct NonEmptyPinboard<T: Clone + 'static>(Pinboard<T>);
 
-impl<T: Clone> NonEmptyPinboard<T> {
+impl<T: Clone + 'static> NonEmptyPinboard<T> {
     /// Create a new `NonEmptyPinboard` instance holding the given value.
     pub fn new(t: T) -> NonEmptyPinboard<T> {
         NonEmptyPinboard(Pinboard::new(t))
@@ -119,7 +119,7 @@ impl<T: Clone> NonEmptyPinboard<T> {
 
 macro_rules! debuggable {
     ($struct:ident, $trait:ident) => {
-        impl<T: Clone> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
+        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(&self.read(), f)?;
