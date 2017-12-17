@@ -16,12 +16,10 @@
 //!     * All reads return a clone of the data, decoupling the lifetime of the read value from the
 //!     data stored in the global reference.
 
-extern crate crossbeam;
+extern crate crossbeam_epoch as epoch;
 
-use crossbeam::epoch::{Atomic, Owned, pin};
+use epoch::{Atomic, Owned, Shared, pin};
 use std::sync::atomic::Ordering::*;
-
-use std::ops::Deref;
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
 pub struct Pinboard<T: Clone>(Atomic<T>);
@@ -31,7 +29,7 @@ impl<T: Clone> Pinboard<T> {
     pub fn new(t: T) -> Pinboard<T> {
         let t = Owned::new(t);
         let p = Pinboard::default();
-        p.0.store(Some(t), Release);
+        p.0.store(t, Release);
         p
     }
 
@@ -39,9 +37,10 @@ impl<T: Clone> Pinboard<T> {
     pub fn set(&self, t: T) {
         let guard = pin();
         let t = Owned::new(t);
-        if let Some(t) = self.0.swap(Some(t), AcqRel, &guard) {
-            unsafe {
-                guard.unlinked(t);
+        let t = self.0.swap(t, AcqRel, &guard);
+        unsafe {
+            if !t.is_null() {
+                guard.defer(move || drop(t.into_owned()));
             }
         }
     }
@@ -49,9 +48,10 @@ impl<T: Clone> Pinboard<T> {
     /// Clear out the `Pinboard` so its no longer holding any data.
     pub fn clear(&self) {
         let guard = pin();
-        if let Some(t) = self.0.swap(None, AcqRel, &guard) {
-            unsafe {
-                guard.unlinked(t);
+        let t = self.0.swap(Shared::null(), AcqRel, &guard);
+        unsafe {
+            if !t.is_null() {
+                guard.defer(move || drop(t.into_owned()));
             }
         }
     }
@@ -59,8 +59,14 @@ impl<T: Clone> Pinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
     pub fn read(&self) -> Option<T> {
         let guard = pin();
-        let t = self.0.load(Acquire, &guard);
-        t.map(|t| -> &T { t.deref() }).cloned()
+        unsafe {
+            let t = self.0.load(Acquire, &guard);
+            if t.is_null() {
+                None
+            } else {
+                Some(t.deref().clone())
+            }
+        }
     }
 }
 
@@ -136,6 +142,7 @@ debuggable!(NonEmptyPinboard, UpperHex);
 
 #[cfg(test)]
 mod tests {
+    extern crate crossbeam;
     use super::*;
     use std::fmt::Display;
 
