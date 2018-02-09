@@ -21,7 +21,7 @@ pinboard = "2.0.0"
 
 Now you can create a Pinboard, share it between your users (be they `Futures`, threads or really anything else) and start sharing data!
 
-```
+```rust
 let weather_report = Pinboard::new("Sunny");
 
 crossbeam::scope(|scope| {
