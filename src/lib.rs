@@ -40,7 +40,7 @@ impl<T: Clone + 'static> Pinboard<T> {
         let t = self.0.swap(t, AcqRel, &guard);
         unsafe {
             if !t.is_null() {
-                guard.defer(move || drop(t.into_owned()));
+                guard.defer_unchecked(move || drop(t.into_owned()));
             }
         }
     }
@@ -51,7 +51,7 @@ impl<T: Clone + 'static> Pinboard<T> {
         let t = self.0.swap(Shared::null(), AcqRel, &guard);
         unsafe {
             if !t.is_null() {
-                guard.defer(move || drop(t.into_owned()));
+                guard.defer_unchecked(move || drop(t.into_owned()));
             }
         }
     }
