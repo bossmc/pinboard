@@ -181,9 +181,9 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-        })
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| consume(&t));
+        }).unwrap();
     }
 
     #[test]
@@ -191,11 +191,11 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-        })
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| consume(&t));
+        }).unwrap();
     }
 
     #[test]
@@ -203,11 +203,11 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-        })
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| consume(&t));
+            scope.spawn(|_| consume(&t));
+            scope.spawn(|_| consume(&t));
+        }).unwrap();
     }
 
     #[test]
@@ -215,13 +215,13 @@ mod tests {
         let t = Pinboard::<u32>::new(0);
 
         crossbeam::scope(|scope| {
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| produce(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-            scope.spawn(|| consume(&t));
-        })
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| produce(&t));
+            scope.spawn(|_| consume(&t));
+            scope.spawn(|_| consume(&t));
+            scope.spawn(|_| consume(&t));
+        }).unwrap();
     }
 
     #[test]
