@@ -2,25 +2,27 @@ extern crate pinboard;
 extern crate crossbeam;
 
 #[derive(Clone)]
-struct Test(Box<u32>);
+struct Test(u32);
 
 impl Drop for Test {
     fn drop(&mut self) {
-        println!("Dropping");
+        println!("Dropping ({})", self.0);
     }
 }
 
 fn main() {
-    let p = pinboard::Pinboard::new(Test(Box::new(0u32)));
+    let p = pinboard::Pinboard::new(Test(0u32));
 
     crossbeam::scope(|s| {
-        s.spawn(|| {
-            for i in 0..1000 {
-                println!("Modifying");
-                p.set(Test(Box::new(i)));
-            }
-        });
-    });
+        for _ in 0..100 {
+            s.spawn(|_| {
+                for i in 0..1000 {
+                    println!("Modifying");
+                    p.set(Test(i));
+                }
+            });
+        }
+    }).unwrap();
 
     println!("Exiting");
 }
