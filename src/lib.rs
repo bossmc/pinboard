@@ -33,6 +33,11 @@ impl<T: Clone + 'static> Pinboard<T> {
         p
     }
 
+    /// Create a new, empty `Pinboard`
+    pub fn new_empty() -> Self {
+        Pinboard(Atomic::null())
+    }
+
     /// Update the value stored in the `Pinboard`.
     pub fn set(&self, t: T) {
         let guard = pin();
@@ -45,7 +50,7 @@ impl<T: Clone + 'static> Pinboard<T> {
         }
     }
 
-    /// Clear out the `Pinboard` so its no longer holding any data.
+    /// Clear out the `Pinboard` so it's no longer holding any data.
     pub fn clear(&self) {
         let guard = pin();
         let t = self.0.swap(Shared::null(), AcqRel, &guard);
@@ -72,7 +77,7 @@ impl<T: Clone + 'static> Pinboard<T> {
 
 impl<T: Clone + 'static> Default for Pinboard<T> {
     fn default() -> Pinboard<T> {
-        Pinboard(Atomic::null())
+        Self::new_empty()
     }
 }
 
