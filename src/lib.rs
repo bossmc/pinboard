@@ -13,6 +13,10 @@
 //! * No in-place mutation:
 //!     * The only write primitive completely overwrites the data on the `Pinboard`
 
+#[doc = include_str!("../README.md")]
+#[cfg(doctest)]
+pub struct README;
+
 extern crate crossbeam_epoch as epoch;
 
 use epoch::{pin, Atomic, Guard, Owned, Shared};
