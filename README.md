@@ -1,6 +1,6 @@
 # Pinboard
 
-[![Crates.io - Pinboard](https://img.shields.io/crates/v/pinboard.svg)](https://crates.io/crates/pinboard) [![Build Status](https://travis-ci.org/bossmc/pinboard.svg?branch=master)](https://travis-ci.org/bossmc/pinboard) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Crates.io - Pinboard](https://img.shields.io/crates/v/pinboard.svg)](https://crates.io/crates/pinboard) [![Build Status](https://github.com/bossmc/pinboard/actions/workflows/rust.yml/badge.svg?branch=master)](https://github.com/bossmc/pinboard/actions/workflows/rust.yml?query=branch%3Amaster) [![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/873) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 An eventually-consistent, lock-free, mutable store of shared data.
 
