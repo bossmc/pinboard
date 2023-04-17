@@ -12,7 +12,7 @@ license = "MIT"
 name = "pinboard"
 repository = "https://github.com/bossmc/pinboard"
 version = "2.2.0"
-edition = "2018"
+edition = "2021"
 
 [badges.travis-ci]
 repository = "bossmc/pinboard"

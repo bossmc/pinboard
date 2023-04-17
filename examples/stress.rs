@@ -19,7 +19,8 @@ fn main() {
                 }
             });
         }
-    }).unwrap();
+    })
+    .unwrap();
 
     println!("Exiting");
 }

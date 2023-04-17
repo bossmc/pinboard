@@ -18,7 +18,8 @@
 pub struct README;
 
 use crossbeam_epoch::{pin, Atomic, Guard, Owned, Shared};
-use std::{ops::Deref, sync::atomic::Ordering::*};
+use std::ops::Deref;
+use std::sync::atomic::Ordering::{AcqRel, Acquire, Release};
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
 pub struct Pinboard<T: 'static>(Atomic<T>);
@@ -93,8 +94,9 @@ impl<T: 'static> Pinboard<T> {
 
 impl<T: Clone + 'static> Pinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
+    #[inline]
     pub fn read(&self) -> Option<T> {
-        Some(self.get_ref()?.clone())
+        self.get_ref().as_deref().cloned()
     }
 }
 
@@ -129,7 +131,7 @@ impl<T: 'static> NonEmptyPinboard<T> {
     /// Update the value stored in the `NonEmptyPinboard`.
     #[inline]
     pub fn set(&self, t: T) {
-        self.0.set(t)
+        self.0.set(t);
     }
 
     /// Get an immutable reference to a recent version of the posted data, protected from deletion by a guard.
