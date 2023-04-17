@@ -92,15 +92,7 @@ impl<T: 'static> Pinboard<T> {
 impl<T: Clone + 'static> Pinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
     pub fn read(&self) -> Option<T> {
-        let guard = pin();
-        unsafe {
-            let t = self.0.load(Acquire, &guard);
-            if t.is_null() {
-                None
-            } else {
-                Some(t.deref().clone())
-            }
-        }
+        Some(self.get_ref()?.clone())
     }
 }
 
@@ -155,13 +147,7 @@ impl<T: Clone + 'static> NonEmptyPinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
     #[inline]
     pub fn read(&self) -> T {
-        // Unwrap the option returned by the inner `Pinboard`. This will never panic, because it's
-        // impossible for this `Pinboard` to be empty (though it's not possible to prove this to the
-        // compiler).
-        match self.0.read() {
-            Some(t) => t,
-            None => unreachable!("Inner pointer was unexpectedly null"),
-        }
+        self.get_ref().clone()
     }
 }
 
