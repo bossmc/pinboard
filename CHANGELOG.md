@@ -9,10 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0] - 2023-04-17
 
+### Fixed
+
+- Move to the rust 2021 edition
+
 ### Added
 
 - Implement `Pinboard::get_ref` to safely borrow the data in the pinboard
   - In particular this works for non-`Clone` types
+  - The returned item can `Deref` to the stored `&T` and inherits `Debug`/`Display` implementations
 
 ## [2.1.0] - 2020-11-01
 

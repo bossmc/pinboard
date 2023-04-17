@@ -17,10 +17,9 @@
 #[cfg(doctest)]
 pub struct README;
 
-extern crate crossbeam_epoch as epoch;
-
-use epoch::{pin, Atomic, Guard, Owned, Shared};
-use std::{ops::Deref, sync::atomic::Ordering::*};
+use crossbeam_epoch::{pin, Atomic, Guard, Owned, Shared};
+use std::ops::Deref;
+use std::sync::atomic::Ordering::{AcqRel, Acquire, Release};
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
 pub struct Pinboard<T: 'static>(Atomic<T>);
@@ -95,8 +94,9 @@ impl<T: 'static> Pinboard<T> {
 
 impl<T: Clone + 'static> Pinboard<T> {
     /// Get a copy of the latest (well, recent) version of the posted data.
+    #[inline]
     pub fn read(&self) -> Option<T> {
-        Some(self.get_ref()?.clone())
+        self.get_ref().as_deref().cloned()
     }
 }
 
@@ -131,7 +131,7 @@ impl<T: 'static> NonEmptyPinboard<T> {
     /// Update the value stored in the `NonEmptyPinboard`.
     #[inline]
     pub fn set(&self, t: T) {
-        self.0.set(t)
+        self.0.set(t);
     }
 
     /// Get an immutable reference to a recent version of the posted data, protected from deletion by a guard.
@@ -161,9 +161,24 @@ macro_rules! debuggable {
         where
             T: ::std::fmt::$trait,
         {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(&self.read(), f)?;
+                write!(f, ")")
+            }
+        }
+    };
+}
+
+macro_rules! debuggable_ref {
+    ($struct:ident, $trait:ident) => {
+        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T>
+        where
+            T: ::std::fmt::$trait,
+        {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> Result<(), ::std::fmt::Error> {
+                write!(f, "{}(", stringify!($struct))?;
+                ::std::fmt::$trait::fmt(self, f)?;
                 write!(f, ")")
             }
         }
@@ -180,14 +195,21 @@ debuggable!(NonEmptyPinboard, Octal);
 debuggable!(NonEmptyPinboard, Pointer);
 debuggable!(NonEmptyPinboard, UpperExp);
 debuggable!(NonEmptyPinboard, UpperHex);
+debuggable_ref!(GuardedRef, Debug);
+debuggable_ref!(GuardedRef, Binary);
+debuggable_ref!(GuardedRef, Display);
+debuggable_ref!(GuardedRef, LowerExp);
+debuggable_ref!(GuardedRef, LowerHex);
+debuggable_ref!(GuardedRef, Octal);
+debuggable_ref!(GuardedRef, Pointer);
+debuggable_ref!(GuardedRef, UpperExp);
+debuggable_ref!(GuardedRef, UpperHex);
 
 #[cfg(test)]
 mod tests {
-    extern crate crossbeam;
     use super::*;
-    use std::fmt::Display;
 
-    fn consume<T: Clone + Display>(t: &Pinboard<T>) {
+    fn consume<T: Clone + ::std::fmt::Display>(t: &Pinboard<T>) {
         loop {
             match t.read() {
                 Some(_) => {}
@@ -205,7 +227,7 @@ mod tests {
         t.clear();
     }
 
-    fn check_debug<T: ::std::fmt::Debug>(_: T) {}
+    fn check_debug<T: ::std::fmt::Debug>(_: &T) {}
 
     #[test]
     fn it_works() {
@@ -280,8 +302,10 @@ mod tests {
     #[test]
     fn debuggable() {
         let t = Pinboard::<i32>::new(3);
-        check_debug(t);
+        check_debug(&t);
         let t = NonEmptyPinboard::<i32>::new(2);
-        check_debug(t);
+        check_debug(&t);
+        let tr = t.get_ref();
+        check_debug(&tr);
     }
 }

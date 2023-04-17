@@ -22,10 +22,10 @@ pinboard = "2.0.0"
 Now you can create a Pinboard, share it between your users (be they `Futures`, threads or really anything else) and start sharing data!
 
 ```rust,no_run
-use pinboard::Pinboard;
+use pinboard::NonEmptyPinboard;
 use std::{thread, time::Duration};
 
-let weather_report = Pinboard::new("Sunny");
+let weather_report = NonEmptyPinboard::new("Sunny");
 
 crossbeam::scope(|scope| {
   scope.spawn(|_| {
@@ -34,7 +34,7 @@ crossbeam::scope(|scope| {
   });
   scope.spawn(|_| {
     loop {
-      println!("The weather is {:?}", weather_report.get_ref().as_deref());
+      println!("The weather is {}", weather_report.get_ref());
       thread::sleep(Duration::from_secs(1));
     }
   });
