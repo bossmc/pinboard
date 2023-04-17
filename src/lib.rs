@@ -12,19 +12,34 @@
 //!     * Writes from one thread can overwrite writes from another thread
 //! * No in-place mutation:
 //!     * The only write primitive completely overwrites the data on the `Pinboard`
-//! * Requires `Clone`:
-//!     * All reads return a clone of the data, decoupling the lifetime of the read value from the
-//!     data stored in the global reference.
 
 extern crate crossbeam_epoch as epoch;
 
-use epoch::{Atomic, Owned, Shared, pin};
-use std::sync::atomic::Ordering::*;
+use epoch::{pin, Atomic, Guard, Owned, Shared};
+use std::{ops::Deref, sync::atomic::Ordering::*};
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
-pub struct Pinboard<T: Clone + 'static>(Atomic<T>);
+pub struct Pinboard<T: 'static>(Atomic<T>);
 
-impl<T: Clone + 'static> Pinboard<T> {
+/// Stores a pointer to a `T`, alongside a guard which protects the data from garbage collection.
+///
+/// Obtained by calling [`Pinboard::get_ref`] or [`NonEmptyPinboard::get_ref`].
+pub struct GuardedRef<T> {
+    // We never use guard, we just hold onto it to protect the data behind the pointer
+    #[allow(dead_code)]
+    guard: Guard,
+    ptr: *const T,
+}
+
+impl<T> Deref for GuardedRef<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { &(*self.ptr) }
+    }
+}
+
+impl<T: 'static> Pinboard<T> {
     /// Create a new `Pinboard` instance holding the given value.
     pub fn new(t: T) -> Pinboard<T> {
         let t = Owned::new(t);
@@ -61,43 +76,49 @@ impl<T: Clone + 'static> Pinboard<T> {
         }
     }
 
-    /// Get a copy of the latest (well, recent) version of the posted data.
-    pub fn read(&self) -> Option<T> {
+    /// Get an immutable reference to a recent version of the posted data, protected from deletion by a guard.
+    pub fn get_ref(&self) -> Option<GuardedRef<T>> {
         let guard = pin();
-        unsafe {
-            let t = self.0.load(Acquire, &guard);
-            if t.is_null() {
-                None
-            } else {
-                Some(t.deref().clone())
-            }
+        let t = self.0.load(Acquire, &guard);
+        if t.is_null() {
+            None
+        } else {
+            let ptr = t.as_raw();
+            Some(GuardedRef { guard, ptr })
         }
     }
 }
 
-impl<T: Clone + 'static> Default for Pinboard<T> {
+impl<T: Clone + 'static> Pinboard<T> {
+    /// Get a copy of the latest (well, recent) version of the posted data.
+    pub fn read(&self) -> Option<T> {
+        Some(self.get_ref()?.clone())
+    }
+}
+
+impl<T: 'static> Default for Pinboard<T> {
     fn default() -> Pinboard<T> {
         Self::new_empty()
     }
 }
 
-impl<T: Clone + 'static> Drop for Pinboard<T> {
+impl<T: 'static> Drop for Pinboard<T> {
     fn drop(&mut self) {
         // Make sure any stored data is marked for deletion
         self.clear();
     }
 }
 
-impl<T: Clone + 'static> From<Option<T>> for Pinboard<T> {
+impl<T: 'static> From<Option<T>> for Pinboard<T> {
     fn from(src: Option<T>) -> Pinboard<T> {
         src.map(Pinboard::new).unwrap_or_default()
     }
 }
 
 /// An wrapper around a `Pinboard` which provides the guarantee it is never empty.
-pub struct NonEmptyPinboard<T: Clone + 'static>(Pinboard<T>);
+pub struct NonEmptyPinboard<T: 'static>(Pinboard<T>);
 
-impl<T: Clone + 'static> NonEmptyPinboard<T> {
+impl<T: 'static> NonEmptyPinboard<T> {
     /// Create a new `NonEmptyPinboard` instance holding the given value.
     pub fn new(t: T) -> NonEmptyPinboard<T> {
         NonEmptyPinboard(Pinboard::new(t))
@@ -109,29 +130,40 @@ impl<T: Clone + 'static> NonEmptyPinboard<T> {
         self.0.set(t)
     }
 
-    /// Get a copy of the latest (well, recent) version of the posted data.
+    /// Get an immutable reference to a recent version of the posted data, protected from deletion by a guard.
     #[inline]
-    pub fn read(&self) -> T {
+    pub fn get_ref(&self) -> GuardedRef<T> {
         // Unwrap the option returned by the inner `Pinboard`. This will never panic, because it's
         // impossible for this `Pinboard` to be empty (though it's not possible to prove this to the
         // compiler).
-        match self.0.read() {
+        match self.0.get_ref() {
             Some(t) => t,
             None => unreachable!("Inner pointer was unexpectedly null"),
         }
     }
 }
 
+impl<T: Clone + 'static> NonEmptyPinboard<T> {
+    /// Get a copy of the latest (well, recent) version of the posted data.
+    #[inline]
+    pub fn read(&self) -> T {
+        self.get_ref().clone()
+    }
+}
+
 macro_rules! debuggable {
     ($struct:ident, $trait:ident) => {
-        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T> where T: ::std::fmt::$trait {
+        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T>
+        where
+            T: ::std::fmt::$trait,
+        {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(&self.read(), f)?;
                 write!(f, ")")
             }
         }
-    }
+    };
 }
 
 debuggable!(Pinboard, Debug);
@@ -188,7 +220,8 @@ mod tests {
         crossbeam::scope(|scope| {
             scope.spawn(|_| produce(&t));
             scope.spawn(|_| consume(&t));
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     #[test]
@@ -200,7 +233,8 @@ mod tests {
             scope.spawn(|_| produce(&t));
             scope.spawn(|_| produce(&t));
             scope.spawn(|_| consume(&t));
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     #[test]
@@ -212,7 +246,8 @@ mod tests {
             scope.spawn(|_| consume(&t));
             scope.spawn(|_| consume(&t));
             scope.spawn(|_| consume(&t));
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     #[test]
@@ -226,7 +261,8 @@ mod tests {
             scope.spawn(|_| consume(&t));
             scope.spawn(|_| consume(&t));
             scope.spawn(|_| consume(&t));
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     #[test]
