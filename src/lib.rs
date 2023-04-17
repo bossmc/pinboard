@@ -170,6 +170,21 @@ macro_rules! debuggable {
     };
 }
 
+macro_rules! debuggable_ref {
+    ($struct:ident, $trait:ident) => {
+        impl<T: Clone + 'static> ::std::fmt::$trait for $struct<T>
+        where
+            T: ::std::fmt::$trait,
+        {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+                write!(f, "{}(", stringify!($struct))?;
+                ::std::fmt::$trait::fmt(self, f)?;
+                write!(f, ")")
+            }
+        }
+    };
+}
+
 debuggable!(Pinboard, Debug);
 debuggable!(NonEmptyPinboard, Debug);
 debuggable!(NonEmptyPinboard, Binary);
@@ -180,6 +195,15 @@ debuggable!(NonEmptyPinboard, Octal);
 debuggable!(NonEmptyPinboard, Pointer);
 debuggable!(NonEmptyPinboard, UpperExp);
 debuggable!(NonEmptyPinboard, UpperHex);
+debuggable_ref!(GuardedRef, Debug);
+debuggable_ref!(GuardedRef, Binary);
+debuggable_ref!(GuardedRef, Display);
+debuggable_ref!(GuardedRef, LowerExp);
+debuggable_ref!(GuardedRef, LowerHex);
+debuggable_ref!(GuardedRef, Octal);
+debuggable_ref!(GuardedRef, Pointer);
+debuggable_ref!(GuardedRef, UpperExp);
+debuggable_ref!(GuardedRef, UpperHex);
 
 #[cfg(test)]
 mod tests {
@@ -205,7 +229,7 @@ mod tests {
         t.clear();
     }
 
-    fn check_debug<T: ::std::fmt::Debug>(_: T) {}
+    fn check_debug<T: ::std::fmt::Debug>(_: &T) {}
 
     #[test]
     fn it_works() {
@@ -280,8 +304,10 @@ mod tests {
     #[test]
     fn debuggable() {
         let t = Pinboard::<i32>::new(3);
-        check_debug(t);
+        check_debug(&t);
         let t = NonEmptyPinboard::<i32>::new(2);
-        check_debug(t);
+        check_debug(&t);
+        let tr = t.get_ref();
+        check_debug(&tr);
     }
 }
