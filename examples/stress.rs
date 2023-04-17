@@ -1,6 +1,3 @@
-extern crate pinboard;
-extern crate crossbeam;
-
 #[derive(Clone)]
 struct Test(u32);
 

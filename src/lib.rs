@@ -17,9 +17,7 @@
 #[cfg(doctest)]
 pub struct README;
 
-extern crate crossbeam_epoch as epoch;
-
-use epoch::{pin, Atomic, Guard, Owned, Shared};
+use crossbeam_epoch::{pin, Atomic, Guard, Owned, Shared};
 use std::{ops::Deref, sync::atomic::Ordering::*};
 
 /// An instance of a `Pinboard`, holds a shared, mutable, eventually-consistent reference to a `T`.
@@ -161,7 +159,7 @@ macro_rules! debuggable {
         where
             T: ::std::fmt::$trait,
         {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(&self.read(), f)?;
                 write!(f, ")")
@@ -176,7 +174,7 @@ macro_rules! debuggable_ref {
         where
             T: ::std::fmt::$trait,
         {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> Result<(), ::std::fmt::Error> {
                 write!(f, "{}(", stringify!($struct))?;
                 ::std::fmt::$trait::fmt(self, f)?;
                 write!(f, ")")
@@ -207,11 +205,9 @@ debuggable_ref!(GuardedRef, UpperHex);
 
 #[cfg(test)]
 mod tests {
-    extern crate crossbeam;
     use super::*;
-    use std::fmt::Display;
 
-    fn consume<T: Clone + Display>(t: &Pinboard<T>) {
+    fn consume<T: Clone + ::std::fmt::Display>(t: &Pinboard<T>) {
         loop {
             match t.read() {
                 Some(_) => {}
